@@ -235,7 +235,8 @@ if __name__ == '__main__':
     }],
                                  lr=args.lr)
     scheduler = MultiStepLR(optimizer, milestones=milestones, gamma=0.2)
-
+    # print("DEBUG",args)
+    # exit(0)
     if args.test_only:
         test_data = RetroCenterDatasets(root=data_root, data_split='test')
         test_dataloader = DataLoader(test_data,
@@ -311,9 +312,13 @@ if __name__ == '__main__':
                 y_adj = [ye.cuda() for ye in y_adj]
 
             mask = list(map(lambda x: x.view(-1, 1).bool(), x_adj))
+            print(len(y_adj),y_adj[0])
+            print(len(mask),mask[0])
+            print("DEBUG")
+            exit(0)
             bond_connections = list(
-                map(lambda x, y: torch.masked_select(x.view(-1, 1), y), y_adj,
-                    mask))
+                map(lambda x, y: torch.masked_select(x.view(-1, 1), y), y_adj,mask))
+                #map(lambda x, y: torch.masked_select(x.reshape(-1, 1), y), y_adj,mask))
             bond_labels = torch.cat(bond_connections, dim=0).float()
 
             GAT_model.zero_grad()
