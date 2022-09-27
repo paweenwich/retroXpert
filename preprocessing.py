@@ -118,7 +118,7 @@ def get_bond_features(mol):
         bond_feat = bond_features(bond)
         adj_array[bond.GetBeginAtomIdx()][bond.GetEndAtomIdx()] = bond_feat
         adj_array[bond.GetEndAtomIdx()][bond.GetBeginAtomIdx()] = bond_feat
-    return adj_array.astype(np.bool)
+    return adj_array.astype(bool)
 
 
 def bond_features(bond):
@@ -247,10 +247,10 @@ def preprocess(save_dir, reactants, products, reaction_types=None):
 
         product_adj = Chem.rdmolops.GetAdjacencyMatrix(product_mol)
         product_adj = product_adj + np.eye(product_adj.shape[0])
-        product_adj = product_adj.astype(np.bool)
+        product_adj = product_adj.astype(bool)
         reactant_adj = Chem.rdmolops.GetAdjacencyMatrix(reactant_mol)
         reactant_adj = reactant_adj + np.eye(reactant_adj.shape[0])
-        reactant_adj = reactant_adj.astype(np.bool)
+        reactant_adj = reactant_adj.astype(bool)
 
         patomidx2pmapidx = get_atomidx2mapidx(product_mol)
         rmapidx2ratomidx = get_mapidx2atomidx(reactant_mol)
