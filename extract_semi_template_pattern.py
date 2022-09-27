@@ -43,6 +43,10 @@ if not args.extract_pattern and os.path.exists(pattern_file):
             patterns_filtered.append(pa)
     print('total number of semi template patterns:', len(patterns_filtered))
 
+# print(args)
+# print(patterns_filtered)
+# print(pattern_file)
+# exit(0)
 
 def get_tpl(task):
     idx, react, prod = task
@@ -92,67 +96,68 @@ def find_all_patterns(task):
     pattern_feature = pattern_feature.transpose().astype('bool_')
     return k, pattern_feature
 
+if __name__ == '__main__':  #KKK
 
-for data_set in ['train', 'valid', 'test']:
-    data_dir = os.path.join('./data', args.dataset, data_set)
-    data_files = [f for f in os.listdir(data_dir) if f.endswith('.pkl')]
-    data_files.sort()
-    products = []
-    reactants = []
-    for data_file in data_files:
-        with open(os.path.join(data_dir, data_file), 'rb') as f:
-            reaction_data = pickle.load(f)
-        products.append(
-            Chem.MolToSmiles(reaction_data['product_mol'], canonical=False))
-        reactants.append(
-            Chem.MolToSmiles(reaction_data['reactant_mol'], canonical=False))
+    for data_set in ['train', 'valid', 'test']:
+        data_dir = os.path.join('./data', args.dataset, data_set)
+        data_files = [f for f in os.listdir(data_dir) if f.endswith('.pkl')]
+        data_files.sort()
+        products = []
+        reactants = []
+        for data_file in data_files:
+            with open(os.path.join(data_dir, data_file), 'rb') as f:
+                reaction_data = pickle.load(f)
+            products.append(
+                Chem.MolToSmiles(reaction_data['product_mol'], canonical=False))
+            reactants.append(
+                Chem.MolToSmiles(reaction_data['reactant_mol'], canonical=False))
 
-    if data_set == 'train' and len(patterns_filtered) == 0:
-        patterns = {}
-        rxns = []
-        for idx, r in enumerate(reactants):
-            rxns.append((idx, r, products[idx]))
-        print('total training rxns:', len(rxns))
+        if data_set == 'train' and len(patterns_filtered) == 0:
+            patterns = {}
+            rxns = []
+            for idx, r in enumerate(reactants):
+                rxns.append((idx, r, products[idx]))
+            print('total training rxns:', len(rxns))
 
+            pool = multiprocessing.Pool(12)
+            for result in tqdm(pool.imap_unordered(get_tpl, rxns),
+                            total=len(rxns)):
+                idx, template = result
+                if 'reaction_smarts' not in template:
+                    continue
+                product_pattern = cano_smarts(template['products'])
+                if product_pattern not in patterns:
+                    patterns[product_pattern] = 1
+                else:
+                    patterns[product_pattern] += 1
+
+            patterns = sorted(patterns.items(), key=lambda x: x[1], reverse=True)
+            patterns = ['{}: {}\n'.format(p[0], p[1]) for p in patterns]
+            with open(pattern_file, 'w') as f:
+                f.writelines(patterns)
+
+            exit(1)
+
+        product_pattern_feat_list = [None] * len(data_files)
+        tasks = [(idx, smi) for idx, smi in enumerate(products)]
+
+        counter = []
         pool = multiprocessing.Pool(12)
-        for result in tqdm(pool.imap_unordered(get_tpl, rxns),
-                           total=len(rxns)):
-            idx, template = result
-            if 'reaction_smarts' not in template:
-                continue
-            product_pattern = cano_smarts(template['products'])
-            if product_pattern not in patterns:
-                patterns[product_pattern] = 1
-            else:
-                patterns[product_pattern] += 1
+        for result in tqdm(pool.imap_unordered(find_all_patterns, tasks),
+                        total=len(tasks)):
+            k, pattern_feature = result
+            with open(os.path.join(data_dir, data_files[k]), 'rb') as f:
+                reaction_data = pickle.load(f)
+            reaction_data['pattern_feat'] = pattern_feature.astype(bool)
+            with open(os.path.join(data_dir, data_files[k]), 'wb') as f:
+                pickle.dump(reaction_data, f)
 
-        patterns = sorted(patterns.items(), key=lambda x: x[1], reverse=True)
-        patterns = ['{}: {}\n'.format(p[0], p[1]) for p in patterns]
-        with open(pattern_file, 'w') as f:
-            f.writelines(patterns)
+            pa = np.sum(pattern_feature, axis=0)
+            counter.append(np.sum(pa > 0))
 
-        exit(1)
+        print('# ave center per mol:', np.mean(counter))
 
-    product_pattern_feat_list = [None] * len(data_files)
-    tasks = [(idx, smi) for idx, smi in enumerate(products)]
-
-    counter = []
-    pool = multiprocessing.Pool(12)
-    for result in tqdm(pool.imap_unordered(find_all_patterns, tasks),
-                       total=len(tasks)):
-        k, pattern_feature = result
-        with open(os.path.join(data_dir, data_files[k]), 'rb') as f:
-            reaction_data = pickle.load(f)
-        reaction_data['pattern_feat'] = pattern_feature.astype(np.bool)
-        with open(os.path.join(data_dir, data_files[k]), 'wb') as f:
-            pickle.dump(reaction_data, f)
-
-        pa = np.sum(pattern_feature, axis=0)
-        counter.append(np.sum(pa > 0))
-
-    print('# ave center per mol:', np.mean(counter))
-
-'''
-pattern_feat feature dim:  646
-# ave center per mol: 36
-'''
+    '''
+    pattern_feat feature dim:  646
+    # ave center per mol: 36
+    '''
