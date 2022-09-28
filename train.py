@@ -90,6 +90,9 @@ def test(GAT_model, test_dataloader, data_split='test', save_pred=False):
                 map(lambda x: torch.from_numpy(x).float(), rxn_class))
             x_atom = list(
                 map(lambda x, y: torch.cat([x, y], dim=1), x_atom, rxn_class))
+        #kkk padding x_atom
+        x_atom = list(
+            map(lambda x: F.pad(input=x,pad=(0,args.in_dim - x.size()[1] )), x_atom))    
 
         x_atom = torch.cat(x_atom, dim=0)
         disconnection_num = torch.LongTensor(disconnection_num)
@@ -312,10 +315,6 @@ if __name__ == '__main__':
                 y_adj = [ye.cuda() for ye in y_adj]
 
             mask = list(map(lambda x: x.view(-1, 1).bool(), x_adj))
-            # print(len(y_adj),y_adj[0])
-            # print(len(mask),mask[0])
-            # print("DEBUG")
-            # exit(0)
             bond_connections = list(
                 #map(lambda x, y: torch.masked_select(x.view(-1, 1), y), y_adj,mask))
                 map(lambda x, y: torch.masked_select(x.reshape(-1, 1), y), y_adj,mask))
