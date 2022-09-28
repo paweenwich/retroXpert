@@ -117,7 +117,6 @@ class GATNet(nn.Module):
         )
 
     def forward(self, g, h):
-        print("forward")
         for l in range(self.num_layers - 1):
             h, _ = self.gat[l](g, h, merge='flatten')
             h = F.elu(h)

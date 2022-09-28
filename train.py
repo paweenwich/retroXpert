@@ -91,6 +91,10 @@ def test(GAT_model, test_dataloader, data_split='test', save_pred=False):
             x_atom = list(
                 map(lambda x, y: torch.cat([x, y], dim=1), x_atom, rxn_class))
 
+        #kkk padding x_atom
+        x_atom = list(
+            map(lambda x: F.pad(input=x,pad=(0,args.in_dim - x.size()[1] )), x_atom))    
+            
         x_atom = torch.cat(x_atom, dim=0)
         disconnection_num = torch.LongTensor(disconnection_num)
         if not args.use_cpu:
