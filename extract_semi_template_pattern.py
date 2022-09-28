@@ -43,11 +43,6 @@ if not args.extract_pattern and os.path.exists(pattern_file):
             patterns_filtered.append(pa)
     print('total number of semi template patterns:', len(patterns_filtered))
 
-# print(args)
-# print(patterns_filtered)
-# print(pattern_file)
-# exit(0)
-
 def get_tpl(task):
     idx, react, prod = task
     reaction = {'_id': idx, 'reactants': react, 'products': prod}
@@ -97,6 +92,13 @@ def find_all_patterns(task):
     return k, pattern_feature
 
 if __name__ == '__main__':  #KKK
+    
+
+# print(args)
+# print(patterns_filtered)
+# print(pattern_file)
+# exit(0)
+
 
     for data_set in ['train', 'valid', 'test']:
         data_dir = os.path.join('./data', args.dataset, data_set)

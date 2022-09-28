@@ -504,7 +504,9 @@ def expand_changed_atom_tags(changed_atom_tags, reactant_fragments):
     changed_atom_tags list so that those tagged atoms are included in the products'''
 
     expansion = []
-    atom_tags_in_reactant_fragments = re.findall('\:([[0-9]+)\]', reactant_fragments)
+    #atom_tags_in_reactant_fragments = re.findall('\:([[0-9]+)\]', reactant_fragments)
+    #https://github.com/connorcoley/rdchiral/issues/12
+    atom_tags_in_reactant_fragments = re.findall('\:([0-9]+)\]', reactant_fragments)
     for atom_tag in atom_tags_in_reactant_fragments:
         if atom_tag not in changed_atom_tags:
             expansion.append(atom_tag)
