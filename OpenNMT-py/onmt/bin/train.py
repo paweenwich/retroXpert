@@ -59,6 +59,7 @@ def train(opt):
 
     if opt.world_size > 1:
         queues = []
+        print("getting spawn")
         mp = torch.multiprocessing.get_context('spawn')
         semaphore = mp.Semaphore(opt.world_size * opt.queue_size)
         # Create a thread to listen for errors in the child processes.
@@ -67,16 +68,21 @@ def train(opt):
         # Train with multiprocessing.
         procs = []
         for device_id in range(nb_gpu):
+            print("device_id=",device_id)
             q = mp.Queue(opt.queue_size)
             queues += [q]
             procs.append(mp.Process(target=run, args=(
                 opt, device_id, error_queue, q, semaphore), daemon=True))
+            print("device_id=",device_id,"start()")
             procs[device_id].start()
+            print("device_id=",device_id,"start done")
             logger.info(" Starting process pid: %d  " % procs[device_id].pid)
             error_handler.add_child(procs[device_id].pid)
+        print("producer")            
         producer = mp.Process(target=batch_producer,
                               args=(train_iter, queues, semaphore, opt,),
                               daemon=True)
+        print("producer.start()")                                          
         producer.start()
         error_handler.add_child(producer.pid)
 
@@ -138,15 +144,20 @@ def batch_producer(generator_to_serve, queues, semaphore, opt):
 
 def run(opt, device_id, error_queue, batch_queue, semaphore):
     """ run process """
+    print("run",device_id)  
     try:
+        print("multi_init",device_id,opt.gpu_backend)  
         gpu_rank = onmt.utils.distributed.multi_init(opt, device_id)
         if gpu_rank != opt.gpu_ranks[device_id]:
             raise AssertionError("An error occurred in \
                   Distributed initialization")
+        print("single_main",device_id)                    
         single_main(opt, device_id, batch_queue, semaphore)
     except KeyboardInterrupt:
+        print("KeyboardInterrupt")
         pass  # killed by parent, do nothing
     except Exception:
+        print("Exception")
         # propagate exception to parent process, keeping original traceback
         import traceback
         error_queue.put((opt.gpu_ranks[device_id], traceback.format_exc()))
@@ -165,7 +176,8 @@ class ErrorHandler(object):
         self.error_thread = threading.Thread(
             target=self.error_listener, daemon=True)
         self.error_thread.start()
-        signal.signal(signal.SIGUSR1, self.signal_handler)
+        #signal.signal(signal.SIGUSR1, self.signal_handler)
+        signal.signal(signal.SIGINT, self.signal_handler)
 
     def add_child(self, pid):
         """ error handler """
@@ -175,7 +187,8 @@ class ErrorHandler(object):
         """ error listener """
         (rank, original_trace) = self.error_queue.get()
         self.error_queue.put((rank, original_trace))
-        os.kill(os.getpid(), signal.SIGUSR1)
+        #os.kill(os.getpid(), signal.SIGUSR1)
+        os.kill(os.getpid(), signal.SIGINT)
 
     def signal_handler(self, signalnum, stackframe):
         """ signal handler """

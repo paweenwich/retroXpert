@@ -22,9 +22,11 @@ def multi_init(opt, device_id):
         master_ip=opt.master_ip,
         master_port=opt.master_port)
     dist_world_size = opt.world_size
+    print("multi_init - ",device_id,opt.gpu_backend,"xxx")
     torch.distributed.init_process_group(
         backend=opt.gpu_backend, init_method=dist_init_method,
         world_size=dist_world_size, rank=opt.gpu_ranks[device_id])
+    print("get_rank",device_id)
     gpu_rank = torch.distributed.get_rank()
     if not is_master(opt, device_id):
         logger.disabled = True

@@ -109,8 +109,8 @@ def test(GAT_model, test_dataloader, data_split='test', save_pred=False):
 
         mask = list(map(lambda x: x.view(-1, 1).bool(), x_adj))
         bond_disconnections = list(
-            map(lambda x, y: torch.masked_select(x.view(-1, 1), y), y_adj,
-                mask))
+            map(lambda x, y: torch.masked_select(x.reshape(-1, 1), y), y_adj,mask))
+            #map(lambda x, y: torch.masked_select(x.view(-1, 1), y), y_adj,mask))
         bond_labels = torch.cat(bond_disconnections, dim=0).float()
 
         # batch graph
@@ -381,3 +381,21 @@ if __name__ == '__main__':
     csv_logger.close()
     torch.save(GAT_model.state_dict(),
                'checkpoints/{}_checkpoint.pt'.format(args.exp_name))
+
+#
+# Namespace(batch_size=32, dataset='USPTO50K', epochs=80, exp_name='USPTO50K_typed', gat_layers=3, heads=4, hidden_dim=128, in_dim=714, load=True, logdir='logs', lr=0.0005, seed=123, test_on_train=True, test_only=False, typed=True, use_cpu=True, valid_only=False)
+#
+# python train.py --typed --test_only  --load --use_cpu
+# pred_true_list size: 5007
+# Bond disconnection number prediction acc: 0.807669
+# Loss:  77.65771935403716
+# Bond disconnection acc (without auxiliary task): 0.301977
+
+#
+#  python train.py --typed --test_on_train --load --use_cpu
+# pred_true_list size: 40008
+# Bond disconnection number prediction acc: 0.808738
+# Loss:  77.0752275082093
+# Bond disconnection acc (without auxiliary task): 0.304364
+
+
